@@ -3,7 +3,7 @@ import { AuthContextProps, DecodedTokenProps, UserProps } from "@/types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { jwtDecode } from "jwt-decode";
-import { createContext, ReactNode, useContext, useState } from "react";
+import { createContext, ReactNode, useContext, useEffect, useState } from "react";
 
 
 export const AuthContext = createContext<AuthContextProps>({
@@ -19,6 +19,47 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [token, setToken] = useState<string | null>(null);
     const [user, setUser] = useState<UserProps | null>(null);
     const router = useRouter()
+
+    useEffect(() => {
+        loadToken()
+    }, [])
+
+    const loadToken = async () => {
+        const storedToken = await AsyncStorage.getItem("token")
+        if (storedToken) {
+            try {
+                const decoded = jwtDecode<DecodedTokenProps>(storedToken)
+                if (decoded.exp && decoded.exp < Date.now() / 1000) {
+                    await AsyncStorage.removeItem("token")
+                    goToWelcomePage()
+
+                    return
+                }
+
+                setToken(storedToken)
+                setUser(decoded.user)
+                goToHomePage()
+
+            } catch (error) {
+                console.log("got error: ", error)
+                goToWelcomePage()
+            }
+        } else {
+            goToWelcomePage()
+        }
+    }
+
+    const goToHomePage = () => {
+        setTimeout(() => {
+            router.replace("/(main)/home")
+        }, 1500)
+    }
+
+    const goToWelcomePage = () => {
+        setTimeout(() => {
+            router.replace("/(auth)/welcome")
+        }, 1500)
+    }
 
     const updateToken = async (token: string) => {
         if (token) {
