@@ -1,4 +1,5 @@
 import { login, register } from "@/services/authServices";
+import { connectSocket, disconnectSocket } from "@/socket/socket";
 import { AuthContextProps, DecodedTokenProps, UserProps } from "@/types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
@@ -38,6 +39,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
                 setToken(storedToken)
                 setUser(decoded.user)
+
+                // Connect Socket
+                await connectSocket()
+
                 goToHomePage()
 
             } catch (error) {
@@ -75,6 +80,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const signIn = async (email: string, password: string) => {
         const response = await login(email, password)
         await updateToken(response.token)
+
+        // Connect Socket
+        await connectSocket()
+
         router.replace("/(main)/home")
     }
 
@@ -88,6 +97,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setToken(null)
         setUser(null)
         await AsyncStorage.removeItem("token")
+
+        // Disconnect Socket
+        await disconnectSocket()
+
         router.replace("/(auth)/welcome")
     }
 
