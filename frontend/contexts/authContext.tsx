@@ -72,7 +72,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             await AsyncStorage.setItem("token", token)
 
             const decoded = jwtDecode<DecodedTokenProps>(token)
-            console.log("decoded: ", decoded)
+            console.log("decoded: update dong", decoded)
             setUser(decoded.user)
         }
     }
