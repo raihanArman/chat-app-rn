@@ -5,7 +5,8 @@ import ScreenWrapper from '@/components/ScreenWrapper'
 import Typo from '@/components/Typo'
 import { colors, radius, spacingX, spacingY } from '@/constants/theme'
 import { useAuth } from '@/contexts/authContext'
-import { testSocket } from '@/socket/socketEvents'
+import { getConversations, newConversation, testSocket } from '@/socket/socketEvents'
+import { ConversationProps, ResponseProps } from '@/types'
 import { verticalScale } from '@/utils/styling'
 import { useRouter } from 'expo-router'
 import * as Icons from "phosphor-react-native"
@@ -17,6 +18,34 @@ const Home = () => {
     const router = useRouter();
     const [selectedTab, setSelectedTab] = useState(0)
     const [loading, setLoading] = useState(false)
+    const [conversations, setConversations] = useState<ConversationProps[]>([])
+
+    useEffect(() => {
+        getConversations(processConversations)
+        newConversation(newConversationHandler)
+
+        getConversations(null)
+
+        return () => {
+            getConversations(processConversations, true)
+            newConversation(newConversationHandler, true)
+        }
+    }, [])
+
+    const processConversations = (res: ResponseProps) => {
+        console.log("got conversations: ", res)
+        if (res.success) {
+            setLoading(false)
+            setConversations(res.data)
+        }
+    }
+
+    const newConversationHandler = (res: ResponseProps) => {
+        console.log("new conversation: ", res)
+        if (res.success && res.data?.isNew) {
+            setConversations((prev) => [...prev, res.data])
+        }
+    }
 
     useEffect(() => {
         testSocket(testSocketCallbackHandler)
@@ -36,44 +65,44 @@ const Home = () => {
         await signOut()
     }
 
-    const conversations = [
-        {
-            name: "Alice",
-            type: "direct",
-            lastMessage: {
-                senderName: "Alice",
-                content: "Hey!, Are we still on for tonight ?",
-                createdAt: "2025-06-10T12:00:00Z"
-            },
-        }, {
-            name: "Project Team",
-            type: "group",
-            lastMessage: {
-                senderName: "Sarah",
-                content: "Hey!, Are we still on for tonight ?",
-                createdAt: "2025-06-10T12:00:00Z"
-            },
-        }, {
-            name: "Kevin",
-            type: "direct",
-            lastMessage: {
-                senderName: "Kevin",
-                content: "Hey!, Are we still on for tonight ?",
-                createdAt: "2025-06-10T12:00:00Z"
-            },
-        }
-    ]
+    // const conversations = [
+    //     {
+    //         name: "Alice",
+    //         type: "direct",
+    //         lastMessage: {
+    //             senderName: "Alice",
+    //             content: "Hey!, Are we still on for tonight ?",
+    //             createdAt: "2025-06-10T12:00:00Z"
+    //         },
+    //     }, {
+    //         name: "Project Team",
+    //         type: "group",
+    //         lastMessage: {
+    //             senderName: "Sarah",
+    //             content: "Hey!, Are we still on for tonight ?",
+    //             createdAt: "2025-06-10T12:00:00Z"
+    //         },
+    //     }, {
+    //         name: "Kevin",
+    //         type: "direct",
+    //         lastMessage: {
+    //             senderName: "Kevin",
+    //             content: "Hey!, Are we still on for tonight ?",
+    //             createdAt: "2025-06-10T12:00:00Z"
+    //         },
+    //     }
+    // ]
 
     let directConversations = conversations
-        .filter((item: any) => item.type == "direct")
-        .sort((a: any, b: any) => {
-            return new Date(b.lastMessage.createdAt).getTime() - new Date(a.lastMessage.createdAt).getTime()
+        .filter((item: ConversationProps) => item.type == "direct")
+        .sort((a: ConversationProps, b: ConversationProps) => {
+            return new Date(b.lastMessage?.createdAt || b.createdAt).getTime() - new Date(a.lastMessage?.createdAt || a.createdAt).getTime()
         })
 
     let groupConversations = conversations
-        .filter((item: any) => item.type == "group")
-        .sort((a: any, b: any) => {
-            return new Date(b.lastMessage.createdAt).getTime() - new Date(a.lastMessage.createdAt).getTime()
+        .filter((item: ConversationProps) => item.type == "group")
+        .sort((a: ConversationProps, b: ConversationProps) => {
+            return new Date(b.lastMessage?.createdAt || b.createdAt).getTime() - new Date(a.lastMessage?.createdAt || a.createdAt).getTime()
         })
 
     return (
@@ -107,7 +136,7 @@ const Home = () => {
                         </View>
                         <View style={styles.conversationList}>
                             {
-                                selectedTab == 0 && directConversations.map((item: any, index) => {
+                                selectedTab == 0 && directConversations.map((item: ConversationProps, index) => {
                                     return (
                                         <ConversationItem item={item} key={index} router={router} showDivider={directConversations.length != index + 1} />
                                     )
@@ -115,7 +144,7 @@ const Home = () => {
 
                             }
                             {
-                                selectedTab == 1 && groupConversations.map((item: any, index) => {
+                                selectedTab == 1 && groupConversations.map((item: ConversationProps, index) => {
                                     return (
                                         <ConversationItem item={item} key={index} router={router} showDivider={groupConversations.length != index + 1} />
                                     )
